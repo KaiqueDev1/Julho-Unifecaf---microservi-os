@@ -20,7 +20,8 @@ spec:
     spec:
       containers:
         - name: estoque-service
-          image: seu-usuario-dockerhub/estoque-service:latest
+          # ALTERADO AQUI
+          image: 1kaiquedev/estoque:latest
           ports:
             - containerPort: 8083
           resources:
@@ -73,7 +74,8 @@ spec:
     spec:
       containers:
         - name: pagamentos-service
-          image: seu-usuario-dockerhub/pagamentos-service:latest
+          # ALTERADO AQUI
+          image: 1kaiquedev/pagamento:latest
           ports:
             - containerPort: 8082
           resources:
@@ -126,7 +128,8 @@ spec:
     spec:
       containers:
         - name: pedidos-service
-          image: seu-usuario-dockerhub/pedidos-service:latest
+          # ALTERADO AQUI
+          image: 1kaiquedev/pedido:latest
           ports:
             - containerPort: 8081
           resources:
@@ -191,4 +194,4 @@ spec:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: 70 # Escala se o uso médio de CPU passar de 70%
+          averageUtilization: 70

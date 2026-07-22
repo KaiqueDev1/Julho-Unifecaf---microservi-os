@@ -1,0 +1,60 @@
+version: '3.8'
+
+networks:
+  veloz-network:
+    driver: bridge
+
+services:
+  # Banco de Dados da Loja Veloz
+  postgres-db:
+    image: postgres:15-alpine
+    container_name: postgres-db
+    environment:
+      POSTGRES_DB: pedidos_veloz
+      POSTGRES_USER: veloz_user
+      POSTGRES_PASSWORD: veloz_password
+    ports:
+      - '5432:5432'
+    networks:
+      - veloz-network
+
+  # Microsserviço de Pagamentos
+  pagamentos-service:
+    build:
+      context: ./pagamento
+      dockerfile: Dockerfile
+    container_name: pagamentos-service
+    ports:
+      - '8082:8082'
+    networks:
+      - veloz-network
+
+  # Microsserviço de Estoque
+  estoque-service:
+    build:
+      context: ./estoque
+      dockerfile: Dockerfile
+    container_name: estoque-service
+    ports:
+      - '8083:8083'
+    networks:
+      - veloz-network
+
+  # Microsserviço de Pedidos (Orquestrador)
+  pedidos-service:
+    build:
+      context: ./pedido
+      dockerfile: Dockerfile
+    container_name: pedidos-service
+    ports:
+      - '8081:8081'
+    environment:
+      # Passando o nome do container no lugar de localhost
+      - URL_ESTOQUE=http://estoque-service:8083
+      - URL_PAGAMENTOS=http://pagamentos-service:8082
+    depends_on:
+      - postgres-db
+      - pagamentos-service
+      - estoque-service
+    networks:
+      - veloz-network

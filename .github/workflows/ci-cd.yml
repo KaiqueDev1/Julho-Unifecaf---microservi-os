@@ -10,7 +10,7 @@ jobs:
 
     strategy:
       matrix:
-        service: [pedidos-service, pagamentos-service, estoque-service]
+        service: [pedido, pagamento, estoque]
 
     steps:
       - name: Checkout do Código
