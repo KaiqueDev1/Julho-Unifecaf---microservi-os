@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: veloz-config
+  namespace: default
+data:
+  URL_ESTOQUE: "http://estoque-service:8083"
+  URL_PAGAMENTOS: "http://pagamentos-service:8082"

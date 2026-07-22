@@ -1,0 +1,194 @@
+# ====== MICROSERVIÇO DE ESTOQUE ======
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: estoque-service
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate # Deploy sem downtime
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: estoque-service
+  template:
+    metadata:
+      labels:
+        app: estoque-service
+    spec:
+      containers:
+        - name: estoque-service
+          image: seu-usuario-dockerhub/estoque-service:latest
+          ports:
+            - containerPort: 8083
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8083
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8083
+            initialDelaySeconds: 20
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: estoque-service
+spec:
+  ports:
+    - port: 8083
+  selector:
+    app: estoque-service
+
+---
+# ====== MICROSERVIÇO DE PAGAMENTOS ======
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pagamentos-service
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: pagamentos-service
+  template:
+    metadata:
+      labels:
+        app: pagamentos-service
+    spec:
+      containers:
+        - name: pagamentos-service
+          image: seu-usuario-dockerhub/pagamentos-service:latest
+          ports:
+            - containerPort: 8082
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8082
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8082
+            initialDelaySeconds: 20
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pagamentos-service
+spec:
+  ports:
+    - port: 8082
+  selector:
+    app: pagamentos-service
+
+---
+# ====== MICROSERVIÇO DE PEDIDOS ======
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pedidos-service
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: pedidos-service
+  template:
+    metadata:
+      labels:
+        app: pedidos-service
+    spec:
+      containers:
+        - name: pedidos-service
+          image: seu-usuario-dockerhub/pedidos-service:latest
+          ports:
+            - containerPort: 8081
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          env:
+            - name: URL_ESTOQUE
+              valueFrom:
+                configMapKeyRef:
+                  name: veloz-config
+                  key: URL_ESTOQUE
+            - name: URL_PAGAMENTOS
+              valueFrom:
+                configMapKeyRef:
+                  name: veloz-config
+                  key: URL_PAGAMENTOS
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://postgres-db:5432/pedidos_veloz"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8081
+            initialDelaySeconds: 40
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8081
+            initialDelaySeconds: 30
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pedidos-service
+spec:
+  ports:
+    - port: 8081
+  selector:
+    app: pedidos-service
+
+---
+# ====== AUTO-ESCALABILIDADE (HPA) ======
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: pedidos-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: pedidos-service
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70 # Escala se o uso médio de CPU passar de 70%
